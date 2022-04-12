@@ -1,0 +1,86 @@
+/* Query 1 */
+
+WITH t1 AS (
+    SELECT ar.Name artist_name, 
+           SUM(inl.UnitPrice*inl.Quantity) artist_sales
+
+    FROM InvoiceLine inl
+    JOIN Track tr
+    ON tr.TrackId = inl.TrackId
+    JOIN Album al
+    ON al.AlbumId = tr.AlbumId
+    JOIN Artist ar
+    ON ar.ArtistId = al.ArtistId
+    GROUP BY 1
+    ORDER BY 2 DESC
+    LIMIT 10),
+
+    t2 AS
+    (SELECT SUM(Total) total_sales
+     FROM Invoice)
+
+SELECT t1.artist_name, 
+       ROUND(t1.artist_sales), 
+      ROUND((t1.artist_sales/t2.total_sales)*100) percent_of_total_sales
+
+FROM t1, t2
+
+
+/* Query 2 */
+
+SELECT gn.Name genres, 
+       SUM(inl.Quantity) total_qty_sold
+
+FROM Genre gn
+JOIN Track tr
+ON tr.GenreId = gn.GenreId
+JOIN InvoiceLine inl
+ON inl.TrackId = tr.TrackId
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 4
+
+
+/* Query 3 */
+
+SELECT COUNT(DISTINCT t1.customer_name) customers_morethan_5, 
+      (t2.num_of_all_customers - COUNT(DISTINCT t1.customer_name)) customers_less_than_5
+
+FROM (SELECT (cs.FirstName || ' ' || cs.LastName) AS customer_name, 
+                 al.Title album_title, 
+              COUNT(tr.Name) track_count
+
+      FROM Track tr
+      JOIN Album al
+      ON al.AlbumId = tr.AlbumId
+      JOIN InvoiceLine inl
+      ON tr.TrackId = inl.TrackId
+      JOIN Invoice inv
+      ON inl.InvoiceId = inv.InvoiceId
+      JOIN Customer cs
+      ON inv.CustomerId = cs.CustomerId
+      GROUP BY 1,2
+      HAVING track_count > 5
+      ORDER BY 1) t1, 
+
+(SELECT COUNT(DISTINCT CustomerId) num_of_all_customers
+ FROM Customer) t2
+
+
+
+/* Query 4 */
+
+WITH t1 AS
+    (SELECT *
+     FROM Invoice
+     WHERE STRFTIME('%Y', InvoiceDate) = '2013' )
+
+SELECT cs.City, 
+       SUM(t1.Total) total_2013_sales
+
+FROM Customer cs
+JOIN t1
+ON t1.CustomerId = CS.CustomerId
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5
